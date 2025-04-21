@@ -51,29 +51,6 @@ def get_all_anbar(request, tag=None):
     return Response(response_data, status=status.HTTP_200_OK)
 
 
-@api_view(["GET"])
-@permission_classes([AllowAny])
-def get_shopgroupe(request):
-    user_data = ShopGroupModel.objects.all()
-    return Response(
-        ShopGroupSerializers(user_data, many=True).data, status=status.HTTP_200_OK
-    )
-@api_view(["GET"])
-@permission_classes([AllowAny])
-def get_sellgroupe(request):
-    user_data = SellGroupModel.objects.all()
-    return Response(
-        SellGroupSerializers(user_data, many=True).data, status=status.HTTP_200_OK
-    )
-@api_view(["GET"])
-@permission_classes([AllowAny])
-def get_kalagroupe(request):
-    user_data = KalaGroupModel.objects.all()
-    return Response(
-        KalaGroupSerializers(user_data, many=True).data, status=status.HTTP_200_OK
-    )
-
-
 class AnbarModelListView(generics.ListAPIView):
     queryset = AnbarModel.objects.all()
     serializer_class = AnbarGetSerializers
@@ -82,30 +59,27 @@ class AnbarModelListView(generics.ListAPIView):
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        inventory_status = self.request.query_params.get('inventory_status')
+        inventory_status = self.request.query_params.get("inventory_status")
         # Convert CharFields to float for comparison
         inventory_float = ExpressionWrapper(
-            Cast(F('Inventory'), FloatField()), output_field=FloatField()
+            Cast(F("Inventory"), FloatField()), output_field=FloatField()
         )
         min_inventory_float = ExpressionWrapper(
-            Cast(F('min_Inventory'), FloatField()), output_field=FloatField()
+            Cast(F("min_Inventory"), FloatField()), output_field=FloatField()
         )
         max_inventory_float = ExpressionWrapper(
-            Cast(F('max_Inventory'), FloatField()), output_field=FloatField()
+            Cast(F("max_Inventory"), FloatField()), output_field=FloatField()
         )
-        if inventory_status == 'less':
+        if inventory_status == "less":
             queryset = queryset.annotate(
-                inventory_f=inventory_float,
-                min_inventory_f=min_inventory_float
-            ).filter(inventory_f__lt=F('min_inventory_f'))
-        elif inventory_status == 'greater':
+                inventory_f=inventory_float, min_inventory_f=min_inventory_float
+            ).filter(inventory_f__lt=F("min_inventory_f"))
+        elif inventory_status == "greater":
             queryset = queryset.annotate(
-                inventory_f=inventory_float,
-                max_inventory_f=max_inventory_float
-            ).filter(inventory_f__gt=F('max_inventory_f'))
-        elif inventory_status == 'min_greater':
+                inventory_f=inventory_float, max_inventory_f=max_inventory_float
+            ).filter(inventory_f__gt=F("max_inventory_f"))
+        elif inventory_status == "min_greater":
             queryset = queryset.annotate(
-                inventory_f=inventory_float,
-                min_inventory_f=min_inventory_float
-            ).filter(inventory_f__gt=F('min_inventory_f'))
+                inventory_f=inventory_float, min_inventory_f=min_inventory_float
+            ).filter(inventory_f__gt=F("min_inventory_f"))
         return queryset
