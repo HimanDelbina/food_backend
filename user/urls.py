@@ -1,6 +1,6 @@
 from django.urls import path
-from user import views
-from .views import *
+from . import views
+from user.views import *
 
 urlpatterns = [
     path("create_person", views.create_person, name="create_person"),
@@ -10,7 +10,7 @@ urlpatterns = [
     path("edit_user/<int:id>", views.edit_user, name="edit_user"),
     path("login_view", views.login_view, name="login_view"),
     path("signup_view", views.signup_view, name="signup_view"),
-    path('get_user_data', GetUserDataView.as_view(), name='get_user_data'),
+    path("get_user_data", GetUserDataView.as_view(), name="get_user_data"),
     ####################################################################
     path("get_unit", views.get_unit, name="get_unit"),
     path("get_postWork", views.get_postWork, name="get_postWork"),
@@ -32,4 +32,10 @@ urlpatterns = [
     ####################################################################
     path("add_ostans", AddOstansFromExcel.as_view(), name="add_ostans"),
     path("add_city", AddCitiesFromExcel.as_view(), name="add_city"),
+    path("download_users_excel", download_users_excel, name="download_users_excel"),
+    path(
+        "check_active/<str:person_code>/",
+        views.get_user_active_status,
+        name="check_user_active_status",
+    ),
 ]

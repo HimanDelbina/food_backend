@@ -4,7 +4,8 @@ from django.conf import settings
 from barcode import Code128
 from barcode.writer import ImageWriter
 from django.core.files.base import ContentFile
-
+from user.models import *
+from django_jalali.db import models as jmodels
 
 UNIT_TYPE = (
     ("A", "عدد"),
@@ -78,3 +79,73 @@ class AnbarModel(models.Model):
             self.barcode.save(filename, buffer, save=False)
             self.barcode_address = os.path.join("barcodes", filename)
         super().save(*args, **kwargs)
+
+
+REQUEST_STATUS_CHOICES = (
+    ("P", "در انتظار بررسی"),  # Pending
+    ("A", "تایید شده"),  # Approved
+    ("R", "رد شده"),  # Rejected
+    ("C", "تکمیل شده"),  # Completed
+)
+
+
+class AnbarRequestModel(models.Model):
+    user = models.ForeignKey(
+        PersonelModel, verbose_name="کاربر", on_delete=models.CASCADE
+    )
+    kala = models.JSONField(verbose_name="کالا ها", default=list)
+    description = models.TextField(
+        verbose_name="توضیحات/دلیل درخواست", null=True, blank=True
+    )  # Added description
+    status = models.CharField(
+        max_length=1,
+        choices=REQUEST_STATUS_CHOICES,
+        default="P",  # Default to Pending
+        verbose_name="وضعیت درخواست",
+    )  # Added status
+    approved_by = models.ForeignKey(
+        PersonelModel,
+        verbose_name="تایید کننده",
+        on_delete=models.SET_NULL,  # Keep request even if approver is deleted
+        related_name="approved_requests",
+        null=True,
+        blank=True,
+    )
+    approved_at = jmodels.jDateTimeField(
+        verbose_name="تاریخ تایید/رد", null=True, blank=True
+    )
+    create_at = jmodels.jDateTimeField(auto_now_add=True)
+    update_at = jmodels.jDateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "درخواست کالا"
+        verbose_name_plural = "درخواست کالا"
+        ordering = ["-create_at"]  # Optional: Order requests by creation date
+
+    def __str__(self):
+        # Display user and status for better representation
+        return f"{self.user.first_name} {self.user.last_name} - {self.get_status_display()}"
+
+    def get_kala_details(self):
+        from .models import AnbarModel
+
+        result = []
+        for item in self.kala:
+            if "kala_id" not in item:
+                continue
+            try:
+                # جستجو بر اساس id
+                kala_obj = AnbarModel.objects.get(id=item["kala_id"])  # تغییر این خط
+                result.append(
+                    {
+                        "name": kala_obj.name,
+                        "code": kala_obj.code,
+                        "id": kala_obj.id,
+                        "count": item.get(
+                            "quantity", 0
+                        ),  # quantity از kala گرفته می‌شود
+                    }
+                )
+            except AnbarModel.DoesNotExist:
+                continue
+        return result

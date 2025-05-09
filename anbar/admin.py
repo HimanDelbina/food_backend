@@ -22,4 +22,18 @@ class AnbarAdmin(admin.ModelAdmin):
     search_fields = ["name", "code"]
 
 
+class AnbarRequestAdmin(admin.ModelAdmin):
+    fields = [
+        "user",
+        "kala",
+        "description",
+        "status",
+        "approved_by",
+        "approved_at",
+    ]
+    list_display = ["kala", "status"]
+    list_filter = ["status"]
+
+
 admin.site.register(AnbarModel, AnbarAdmin)
+admin.site.register(AnbarRequestModel, AnbarRequestAdmin)

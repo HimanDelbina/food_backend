@@ -5,8 +5,8 @@ from .models import *
 from .serializers import *
 from django.dispatch import receiver
 from django.db.models.signals import post_save
-from rest_framework.decorators import permission_classes, api_view
-from django.http import JsonResponse
+from rest_framework.decorators import permission_classes, api_view, throttle_classes
+from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 from rest_framework.views import APIView
@@ -15,8 +15,21 @@ from .models import CityModel
 import pandas as pd
 import os
 import logging
-from rest_framework.parsers import MultiPartParser
-from rest_framework import viewsets
+from django.db.models import Q, Count
+from django.contrib.auth.hashers import make_password, check_password
+from django.shortcuts import get_object_or_404
+from django.db import transaction
+from django.views.decorators.cache import cache_page
+from rest_framework.throttling import UserRateThrottle
+from datetime import datetime
+import io
+import openpyxl
+from collections import Counter
+import jdatetime
+
+
+class OncePerMinuteThrottle(UserRateThrottle):
+    rate = "1/minute"
 
 
 @api_view(["POST"])
@@ -33,22 +46,35 @@ def create_person(request):
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
+@cache_page(60 * 15)  # کش برای 15 دقیقه
 def get_all_person(request):
-    # دریافت داده‌ها از مدل
-    user_data = PersonelModel.objects.all()
+    user_data = (
+        PersonelModel.objects.select_related(
+            "unit", "work_type", "post_work", "sh_ostan", "burn_ostan"
+        )
+        .prefetch_related("child")
+        .annotate(
+            total_users=Count("id"),
+            active_users=Count("id", filter=Q(is_online="A")),
+            mission_users=Count("id", filter=Q(is_online="MA")),
+            consultation_users=Count("id", filter=Q(is_online="MO")),
+        )
+        .first()
+    )
 
-    # شمارش تعداد کاربران بر اساس وضعیت is_online
-    active_users = user_data.filter(is_online="A").count()
-    mission_users = user_data.filter(is_online="MA").count()
-    consultation_users = user_data.filter(is_online="MO").count()
-
-    # ایجاد داده‌ها برای ارسال در پاسخ
     response_data = {
-        "total_users": user_data.count(),  # تعداد کل کاربران
-        "active_users": active_users,  # تعداد کاربران فعال
-        "mission_users": mission_users,  # تعداد کاربران مامور
-        "consultation_users": consultation_users,  # تعداد کاربران مشاوره
-        "users": PersonGetSerializers(user_data, many=True).data,  # لیست کامل کاربران
+        "total_users": user_data.total_users if user_data else 0,
+        "active_users": user_data.active_users if user_data else 0,
+        "mission_users": user_data.mission_users if user_data else 0,
+        "consultation_users": user_data.consultation_users if user_data else 0,
+        "users": PersonGetSerializers(
+            PersonelModel.objects.select_related(
+                "unit", "work_type", "post_work", "sh_ostan", "burn_ostan"
+            )
+            .prefetch_related("child")
+            .all(),
+            many=True,
+        ).data,
     }
 
     return Response(response_data, status=status.HTTP_200_OK)
@@ -127,84 +153,69 @@ def delete_all_cities(request):
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
+@cache_page(60 * 15)  # کش برای 15 دقیقه
 def get_flter_person(request):
-    queryset = PersonelModel.objects.all()
+    queryset = PersonelModel.objects.select_related(
+        "unit", "work_type", "post_work", "sh_ostan", "burn_ostan"
+    ).prefetch_related("child")
 
-    # گرفتن فیلترها از query params
-    gender = request.GET.get("gender")
-    is_online = request.GET.get("is_online")
-    shift = request.GET.get("shift")
-    person_code = request.GET.get("person_code")
-    date_employ = request.GET.get("date_employ")  # تاریخ دقیق
-    date_employ__gte = request.GET.get("date_employ__gte")
-    date_employ__lte = request.GET.get("date_employ__lte")
-    unit = request.GET.get("unit")
-    work_type = request.GET.get("work_type")
-    post_work = request.GET.get("post_work")
-    solder_select = request.GET.get("solder_select")
-    child_count = request.GET.get("child_count")
+    filters = {}
+    if request.GET.get("gender"):
+        filters["gender"] = request.GET.get("gender")
+    if request.GET.get("is_online"):
+        filters["is_online"] = request.GET.get("is_online")
+    if request.GET.get("shift"):
+        filters["shift"] = request.GET.get("shift")
+    if request.GET.get("person_code"):
+        filters["person_code"] = request.GET.get("person_code")
+    if request.GET.get("unit"):
+        filters["unit_id"] = request.GET.get("unit")
+    if request.GET.get("work_type"):
+        filters["work_type_id"] = request.GET.get("work_type")
+    if request.GET.get("post_work"):
+        filters["post_work_id"] = request.GET.get("post_work")
+    if request.GET.get("solder_select"):
+        filters["solder_select"] = request.GET.get("solder_select")
+    if request.GET.get("child_count"):
+        filters["child_count"] = request.GET.get("child_count")
 
-    if gender:
-        queryset = queryset.filter(gender=gender)
-    if is_online:
-        queryset = queryset.filter(is_online=is_online)
-    if shift:
-        queryset = queryset.filter(shift=shift)
-    if person_code:
-        queryset = queryset.filter(person_code=person_code)
-    if unit:
-        queryset = queryset.filter(unit_id=unit)
-    if work_type:
-        queryset = queryset.filter(work_type_id=work_type)
-    if post_work:
-        queryset = queryset.filter(post_work_id=post_work)
-    if solder_select:
-        queryset = queryset.filter(solder_select=solder_select)
-    if child_count:
-        queryset = queryset.filter(child_count=child_count)
-
-    # فیلتر تاریخ استخدام (تبدیل به فرمت میلادی اگر از جلالی می‌فرستی)
     try:
-        if date_employ:
-            queryset = queryset.filter(date_employ=date_employ)
-        if date_employ__gte:
-            queryset = queryset.filter(date_employ__gte=date_employ__gte)
-        if date_employ__lte:
-            queryset = queryset.filter(date_employ__lte=date_employ__lte)
+        if request.GET.get("date_employ"):
+            filters["date_employ"] = request.GET.get("date_employ")
+        if request.GET.get("date_employ__gte"):
+            filters["date_employ__gte"] = request.GET.get("date_employ__gte")
+        if request.GET.get("date_employ__lte"):
+            filters["date_employ__lte"] = request.GET.get("date_employ__lte")
     except Exception as e:
-        print(f"خطا در فیلتر تاریخ: {e}")
+        logging.error(f"خطا در فیلتر تاریخ: {e}")
 
+    queryset = queryset.filter(**filters)
     serialized_data = PersonGetSerializers(queryset, many=True).data
     return Response(serialized_data, status=status.HTTP_200_OK)
 
 
 class AddOstansFromExcel(APIView):
     def post(self, request, *args, **kwargs):
-        # مسیر فایل اکسل
-        file_path = (
-            "C:/Users/it/Desktop/Django/ostan.xlsx"  # مسیر فایل را اینجا مشخص کنید
-        )
+        file_path = "C:/Users/it/Desktop/Django/ostan.xlsx"
 
         try:
-            # خواندن فایل اکسل
             df = pd.read_excel(file_path)
-
-            # حذف فضای خالی اضافی از نام استان‌ها
             df["ostan"] = df["ostan"].str.strip()
 
-            # اضافه کردن داده‌ها به مدل
-            added_count = 0
-            for index, row in df.iterrows():
-                ostan_name = row["ostan"]
+            new_ostans = []
+            for ostan_name in df["ostan"].unique():
                 if not OstanModel.objects.filter(name=ostan_name).exists():
-                    OstanModel.objects.create(name=ostan_name)
-                    added_count += 1
+                    new_ostans.append(OstanModel(name=ostan_name))
+
+            if new_ostans:
+                OstanModel.objects.bulk_create(new_ostans)
 
             return Response(
-                {"message": f"{added_count} استان با موفقیت اضافه شد."},
+                {"message": f"{len(new_ostans)} استان با موفقیت اضافه شد."},
                 status=status.HTTP_201_CREATED,
             )
         except Exception as e:
+            logging.error(f"خطا در اضافه کردن استان‌ها: {e}")
             return Response(
                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
@@ -212,50 +223,38 @@ class AddOstansFromExcel(APIView):
 
 class AddCitiesFromExcel(APIView):
     def post(self, request, *args, **kwargs):
-        # مسیر فایل اکسل
-        file_path = (
-            "C:/Users/it/Desktop/Django/shahr.xlsx"  # مسیر فایل را اینجا مشخص کنید
-        )
+        file_path = "C:/Users/it/Desktop/Django/shahr.xlsx"
 
         try:
-            # خواندن فایل اکسل
             df = pd.read_excel(file_path)
-
-            # حذف فضای خالی اضافی از نام شهرها
             df["City"] = df["City"].str.strip()
 
-            # اضافه کردن داده‌ها به مدل CityModel
-            added_count = 0
+            new_cities = []
             for index, row in df.iterrows():
-                state_id = row["State"]  # شناسه استان
-                city_name = row["City"]  # نام شهر
+                state_id = row["State"]
+                city_name = row["City"]
 
                 try:
-                    # پیدا کردن استان مرتبط با شناسه
                     ostan = OstanModel.objects.get(id=state_id)
-
-                    # بررسی تکراری بودن شهر
                     if not CityModel.objects.filter(
                         name=city_name, ostan=ostan
                     ).exists():
-                        CityModel.objects.create(ostan=ostan, name=city_name)
-                        added_count += 1
-                        print(f"شهر {city_name} به استان {ostan.name} اضافه شد.")
-                    else:
-                        print(f"شهر {city_name} قبلاً وجود دارد.")
-
+                        new_cities.append(CityModel(ostan=ostan, name=city_name))
                 except OstanModel.DoesNotExist:
                     return Response(
                         {"error": f"استان با شناسه {state_id} وجود ندارد."},
                         status=status.HTTP_404_NOT_FOUND,
                     )
 
+            if new_cities:
+                CityModel.objects.bulk_create(new_cities)
+
             return Response(
-                {"message": f"{added_count} شهر با موفقیت اضافه شد."},
+                {"message": f"{len(new_cities)} شهر با موفقیت اضافه شد."},
                 status=status.HTTP_201_CREATED,
             )
-
         except Exception as e:
+            logging.error(f"خطا در اضافه کردن شهرها: {e}")
             return Response(
                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
@@ -285,7 +284,7 @@ class ChangePasswordView(APIView):
         # اگه پیام به صورت dict بود، status رو ازش استخراج می‌کنیم
         custom_status = 400
         if isinstance(first_error, dict):
-            message = first_error.get("message", "خطای نامشخص")
+            message = first_error.get("message", "خطای نامشخصص")
             custom_status = first_error.get("status", 400)
         else:
             message = first_error[0]
@@ -298,74 +297,63 @@ class ChangePasswordView(APIView):
 
 @api_view(["PATCH"])
 @permission_classes([AllowAny])
+@transaction.atomic
 def edit_user(request, id):
-    try:
-        person = PersonelModel.objects.get(person_code=id)
-    except PersonelModel.DoesNotExist:
-        return Response({"error": "کاربر یافت نشد."}, status=status.HTTP_404_NOT_FOUND)
-
+    person = get_object_or_404(PersonelModel, person_code=id)
     serializer = PersonSerializers(person, data=request.data, partial=True)
 
     if serializer.is_valid():
         serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
-    else:
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(["PATCH"])
 @permission_classes([AllowAny])
+@transaction.atomic
 def edit_unit(request, id):
-    try:
-        unit = UnitModel.objects.get(id=id)
-    except UnitModel.DoesNotExist:
-        return Response({"error": "واحد یافت نشد."}, status=status.HTTP_404_NOT_FOUND)
-
+    unit = get_object_or_404(UnitModel, id=id)
     serializer = UnitSerializers(unit, data=request.data, partial=True)
 
     if serializer.is_valid():
         serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
-    else:
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(["PATCH"])
 @permission_classes([AllowAny])
+@transaction.atomic
 def edit_postwork(request, id):
-    try:
-        postwork = PostWorkModel.objects.get(id=id)
-    except PostWorkModel.DoesNotExist:
-        return Response({"error": "واحد یافت نشد."}, status=status.HTTP_404_NOT_FOUND)
-
-    serializer = UnitSerializers(postwork, data=request.data, partial=True)
+    postwork = get_object_or_404(PostWorkModel, id=id)
+    serializer = PostWorkSerializers(postwork, data=request.data, partial=True)
 
     if serializer.is_valid():
         serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
-    else:
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(["PATCH"])
 @permission_classes([AllowAny])
+@transaction.atomic
 def edit_worktype(request, id):
-    try:
-        worktype = WorkTypeModel.objects.get(id=id)
-    except WorkTypeModel.DoesNotExist:
-        return Response({"error": "واحد یافت نشد."}, status=status.HTTP_404_NOT_FOUND)
-
-    serializer = UnitSerializers(worktype, data=request.data, partial=True)
+    worktype = get_object_or_404(WorkTypeModel, id=id)
+    serializer = WorkTypeSerializers(worktype, data=request.data, partial=True)
 
     if serializer.is_valid():
         serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
-    else:
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class FivePerMinuteThrottle(UserRateThrottle):
+    rate = "10/min"
 
 
 @api_view(["POST"])
 @permission_classes([AllowAny])
+@throttle_classes([FivePerMinuteThrottle])
 def login_view(request):
     serializer = LoginSerializer(data=request.data)
     if serializer.is_valid():
@@ -373,7 +361,7 @@ def login_view(request):
         password = serializer.validated_data["password"]
         try:
             user = PersonelModel.objects.get(person_code=person_code)
-            if user.password == password:
+            if password == user.password:
                 user_data = PersonGetSerializers(user).data
                 return Response(user_data, status=status.HTTP_200_OK)
             else:
@@ -418,3 +406,231 @@ class GetUserDataView(APIView):
 
         serializer = PersonGetSerializers(person)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def download_users_excel(request):
+    try:
+        # دریافت تمام کاربران با اطلاعات مرتبط
+        users = PersonelModel.objects.select_related(
+            "unit", "work_type", "post_work", "sh_ostan", "burn_ostan"
+        ).prefetch_related("child")
+
+        # ایجاد فایل اکسل در حافظه
+        output = io.BytesIO()
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Users"
+
+        # تعریف هدرها
+        headers = [
+            "Personnel Code",
+            "First Name",
+            "Last Name",
+            "Gender",
+            "Status",
+            "Shift",
+            "Unit",
+            "Work Type",
+            "Job Position",
+            "Service Province",
+            "Birth Province",
+            "Children Count",
+            "Male Children",
+            "Female Children",
+            "Employment Date",
+            "Military Status",
+            "Exemption Reason",
+            "Education",
+            "Education Field",
+            "University",
+            "Institute",
+            "Document in File",
+            "Marital Status",
+            "Spouse Name",
+            "Spouse Birth Date",
+            "Insurance Number",
+            "Insurance Days",
+            "Insurance Years",
+            "Bank Account",
+            "IBAN",
+            "Address",
+            "Postal Code",
+            "Settlement Date",
+            "Settlement Reason",
+            "In Settlement",
+            "Issue Date",
+            "Marriage Date",
+            "Access Level",
+            "Phone Number",
+            "National Code",
+            "ID Number",
+            "ID Serial",
+            "Father Name",
+            "Birth Date",
+            "Is Active",
+            "Create Date",
+            "Update Date",
+        ]
+
+        # نوشتن هدرها
+        for col_num, header in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col_num)
+            cell.value = header
+            cell.font = openpyxl.styles.Font(bold=True)
+
+        # Define mappings for choices based on models.py
+        GENDER_MAP = dict(GENDER)
+        ISONLINE_MAP = dict(ISONLINE)
+        SHIFT_WORK_MAP = dict(SHIFT_WORK)
+        SOLDER_SELECT_MAP = dict(SOLDER_SELECT)
+        EDUCATION_SELECT_MAP = dict(EDUCATION_SELECT)
+        ACCESS_SELECT_MAP = dict(ACCESS_SELECT)
+
+        # نوشتن داده‌ها
+        for row_num, user in enumerate(users, 2):
+            # Helper function to safely format dates/datetimes
+            def format_datetime(dt):
+                if dt:
+                    # Check if it's jdatetime.date or jdatetime.datetime
+                    if hasattr(
+                        dt, "strftime"
+                    ):  # Standard datetime/date or jdatetime.datetime
+                        try:
+                            # Attempt standard formatting first
+                            return (
+                                dt.strftime("%Y-%m-%d %H:%M:%S")
+                                if hasattr(dt, "hour")
+                                else dt.strftime("%Y-%m-%d")
+                            )
+                        except (
+                            ValueError
+                        ):  # Handle potential jdatetime specific formatting if needed
+                            # Assuming jdatetime objects might need specific formatting if strftime fails
+                            # Or simply convert to string
+                            return str(dt)
+                    else:  # Fallback for other types or if strftime is not available
+                        return str(dt)
+                return ""
+
+            data = [
+                user.person_code,
+                user.first_name,
+                user.last_name,
+                GENDER_MAP.get(user.gender, user.gender),  # Use map for Gender
+                ISONLINE_MAP.get(user.is_online, user.is_online),  # Use map for Status
+                SHIFT_WORK_MAP.get(user.shift, user.shift),  # Use map for Shift
+                user.unit.name if user.unit else "",
+                user.work_type.name if user.work_type else "",
+                user.post_work.name if user.post_work else "",
+                user.sh_ostan.name if user.sh_ostan else "",
+                user.burn_ostan.name if user.burn_ostan else "",
+                user.child_count,
+                user.boy_child_count,
+                user.girl_child_count,
+                format_datetime(user.date_employ),  # Format date
+                SOLDER_SELECT_MAP.get(
+                    user.solder_select, user.solder_select
+                ),  # Use map for Military Status
+                user.reason_ex,
+                EDUCATION_SELECT_MAP.get(
+                    user.education, user.education
+                ),  # Use map for Education
+                user.education_field,
+                user.univercity,
+                user.Institute,
+                "Yes" if user.ev_file else "No",
+                "Married" if user.is_marid else "Single",
+                user.wife_name,
+                format_datetime(user.wife_birthday),  # Format date
+                user.insurance_number,
+                user.insurance_history_day,
+                user.insurance_history_year,
+                user.bank_number,
+                user.bank_shaba,
+                user.address,
+                user.post_code,
+                format_datetime(user.settlement_date),  # Format date
+                user.settlement_description,
+                "Yes" if user.settlement_steps else "No",
+                format_datetime(user.issue_date),  # Format date
+                format_datetime(user.married_date),  # Format date
+                ACCESS_SELECT_MAP.get(
+                    user.access, user.access
+                ),  # Use map for Access Level
+                user.phone_number,
+                user.melli_code,
+                user.sh_code,
+                user.sh_s_code,
+                user.father_name,
+                format_datetime(user.birthday),  # Format date
+                "Yes" if user.is_active else "No",
+                format_datetime(user.create_at),  # Format datetime
+                format_datetime(user.update_at),  # Format datetime
+            ]
+
+            for col_num, value in enumerate(data, 1):
+                cell = ws.cell(row=row_num, column=col_num)
+                # Ensure value is not None before assigning
+                cell.value = value if value is not None else ""
+
+        # تنظیم عرض ستون‌ها
+        for col in ws.columns:
+            max_length = 0
+            column = col[0].column_letter
+            for cell in col:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = max_length + 2
+            ws.column_dimensions[column].width = adjusted_width
+
+        # ذخیره فایل
+        wb.save(output)
+        output.seek(0)
+
+        # تنظیم هدرهای پاسخ
+        response = HttpResponse(
+            output.getvalue(),
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        response["Content-Disposition"] = (
+            f'attachment; filename=users_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
+        )
+
+        return response
+
+    except Exception as e:
+        # Log the specific error for better debugging
+        logging.error(f"خطا در ایجاد فایل اکسل: {e}", exc_info=True)
+        return Response(
+            {"error": f"خطا در ایجاد فایل اکسل: {e}"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def get_user_active_status(request, person_code):
+    try:
+        # Attempt to find the user by person_code
+        user = PersonelModel.objects.get(person_code=person_code)
+        # Return the is_active status
+        return Response({"is_active": user.is_active}, status=status.HTTP_200_OK)
+    except PersonelModel.DoesNotExist:
+        # Handle case where user is not found
+        return Response(
+            {"error": "کاربری با این شماره پرسنلی یافت نشد"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+    except Exception as e:
+        # Handle other potential errors
+        logging.error(
+            f"Error checking user active status for {person_code}: {e}", exc_info=True
+        )
+        return Response(
+            {"error": "خطای داخلی سرور"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

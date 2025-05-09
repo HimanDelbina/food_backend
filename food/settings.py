@@ -41,12 +41,18 @@ INSTALLED_APPS = [
     ##############################
     "rest_framework",
     "django_jalali",
+    "corsheaders",
     ##############################
     "user",
     "anbar",
+    "product",
+    "user_scince",
+    "all_data",
 ]
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
+    "django.middleware.common.CommonMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -183,3 +189,21 @@ JALALI_DATE_DEFAULTS = {
         },
     },
 }
+
+
+# تنظیم کانال برای مدیریت WebSocket
+ASGI_APPLICATION = "edari.asgi.application"
+# کانال پیش‌فرض
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
+    },
+}
+
+
+CORS_ALLOW_ALL_ORIGINS = True  # یا:
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5000",
+    "http://192.168.43.15:5000",
+    "http://192.168.60.184:5000",
+]
