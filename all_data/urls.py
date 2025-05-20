@@ -3,5 +3,9 @@ from .views import *
 from . import views
 
 urlpatterns = [
-    # path("create_anbar", views.create_anbar, name="create_anbar"),
+    path(
+        "get_all_requests_by_type/",
+        views.get_all_requests_by_type,
+        name="get_all_requests_by_type",
+    ),
 ]

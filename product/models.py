@@ -1,5 +1,6 @@
 from django.db import models
 from anbar.models import *
+from anbar.models import AnbarModel
 
 # Create your models here.
 

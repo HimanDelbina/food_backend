@@ -2,6 +2,8 @@ from rest_framework import serializers
 from .models import *
 from user.serializers import *
 
+class ApproveRequestSerializer(serializers.Serializer):
+    request_id = serializers.IntegerField()
 
 class AnbarSerializers(serializers.ModelSerializer):
     class Meta:
@@ -16,10 +18,13 @@ class AnbarGetSerializers(serializers.ModelSerializer):
         depth = 1
 
 
-# class AnbarRequestSerializers(serializers.ModelSerializer):
-#     class Meta:
-#         model = AnbarRequestModel
-#         fields = "__all__"
+class AnbarRequestEditSerializers(serializers.ModelSerializer):
+
+    class Meta:
+        model = AnbarRequestModel
+        fields = "__all__"
+
+
 class AnbarRequestSerializers(serializers.ModelSerializer):
     kala = serializers.ListField(child=serializers.DictField())
 

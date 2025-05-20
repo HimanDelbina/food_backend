@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     "product",
     "user_scince",
     "all_data",
+    "production",
 ]
 
 MIDDLEWARE = [

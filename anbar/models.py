@@ -86,6 +86,7 @@ REQUEST_STATUS_CHOICES = (
     ("A", "تایید شده"),  # Approved
     ("R", "رد شده"),  # Rejected
     ("C", "تکمیل شده"),  # Completed
+    ("U", "لغو شده"),
 )
 
 
