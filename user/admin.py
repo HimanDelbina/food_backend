@@ -108,6 +108,13 @@ class PersonelAdmin(admin.ModelAdmin):
     search_fields = ["first_name", "last_name", "person_code"]
 
 
+class DestinationAdmin(admin.ModelAdmin):
+    fields = ["first_name", "last_name", "phone_number", "address"]
+    list_display = ["first_name", "last_name", "phone_number", "address"]
+    list_filter = ["phone_number"]
+    search_fields = ["phone_number"]
+
+
 admin.site.register(UnitModel, UnitAdmin)
 admin.site.register(OstanModel, OstanAdmin)
 admin.site.register(CityModel, CityAdmin)
@@ -115,3 +122,4 @@ admin.site.register(ChildModel, ChildAdmin)
 admin.site.register(PersonelModel, PersonelAdmin)
 admin.site.register(WorkTypeModel, WorkTypeAdmin)
 admin.site.register(PostWorkModel, PostWorkAdmin)
+admin.site.register(DestinationModel, DestinationAdmin)

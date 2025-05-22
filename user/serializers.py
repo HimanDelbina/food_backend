@@ -27,6 +27,12 @@ class OstanSerializers(serializers.ModelSerializer):
         fields = "__all__"
 
 
+class DestinationSerializers(serializers.ModelSerializer):
+    class Meta:
+        model = DestinationModel
+        fields = "__all__"
+
+
 class CitySerializers(serializers.ModelSerializer):
     class Meta:
         model = CityModel

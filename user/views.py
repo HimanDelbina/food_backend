@@ -34,6 +34,50 @@ class OncePerMinuteThrottle(UserRateThrottle):
 
 @api_view(["POST"])
 @permission_classes([AllowAny])
+def create_destination(request):
+    s_data = request.data
+    print(request.data)
+    data_serializers = DestinationSerializers(data=s_data)
+    if data_serializers.is_valid():
+        data_serializers.save()
+        return Response(data_serializers.data, status=status.HTTP_201_CREATED)
+    return Response(data_serializers.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def get_all_destination(request):
+    user_data = DestinationModel.objects.all()
+    return Response(
+        DestinationSerializers(user_data, many=True).data, status=status.HTTP_200_OK
+    )
+
+
+@api_view(["PATCH"])
+@permission_classes([AllowAny])
+@transaction.atomic
+def edit_destination(request, id):
+    person = get_object_or_404(DestinationModel, id=id)
+    serializer = DestinationSerializers(person, data=request.data, partial=True)
+
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(["DELETE"])
+def delete_anbar_request(request, id):
+    try:
+        destination_request = DestinationModel.objects.get(id=id)
+    except DestinationModel.DoesNotExist:
+        return Response({"error": "درخواست مورد نظر پیدا نشد."}, status=404)
+    destination_request.delete()
+    return Response({"message": "درخواست با موفقیت حذف شد."}, status=204)
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
 def create_person(request):
     s_data = request.data
     print(request.data)

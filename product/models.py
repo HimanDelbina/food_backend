@@ -7,7 +7,7 @@ from anbar.models import AnbarModel
 
 class ProductModel(models.Model):
     name = models.CharField(max_length=100, verbose_name="محصول")
-    unit = models.CharField(max_length=20) 
+    unit = models.CharField(max_length=20)
     is_active = models.BooleanField(verbose_name="فعال/غیر فعال", default=True)
 
     class Meta:

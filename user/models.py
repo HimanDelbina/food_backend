@@ -280,3 +280,17 @@ class PersonelModel(models.Model):
 
     def __str__(self):
         return str(self.person_code)
+
+
+class DestinationModel(models.Model):
+    first_name = models.CharField(verbose_name="نام", max_length=50)
+    last_name = models.CharField(verbose_name="نام خانوادگی", max_length=50)
+    phone_number = models.CharField(verbose_name="شماره موبایل", max_length=11)
+    address = models.TextField(verbose_name="آدرس")
+
+    class Meta:
+        verbose_name = "مشتریان"
+        verbose_name_plural = "مشتریان"
+
+    def __str__(self):
+        return self.first_name

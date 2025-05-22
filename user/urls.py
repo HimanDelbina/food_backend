@@ -38,4 +38,13 @@ urlpatterns = [
         views.get_user_active_status,
         name="check_user_active_status",
     ),
+    #################################################################### Destination
+    path("create_destination", create_destination, name="create_destination"),
+    path("get_all_destination", get_all_destination, name="get_all_destination"),
+    path("edit_destination/<int:id>", edit_destination, name="edit_destination"),
+    path(
+        "delete_anbar_request/<int:id>",
+        delete_anbar_request,
+        name="delete_anbar_request",
+    ),
 ]
