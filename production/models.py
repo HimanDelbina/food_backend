@@ -54,6 +54,37 @@ class TolidModel(models.Model):
         return self.product.name
 
 
+class AnbarGhModel(models.Model):
+    tolid_item = models.ForeignKey(
+        TolidModel, verbose_name="محصول", on_delete=models.CASCADE
+    )
+    total_inventory = models.DecimalField(
+        max_digits=10, decimal_places=2, verbose_name="موجودی کل", default=0
+    )
+    start_date = jmodels.jDateField(
+        verbose_name="تاریخ ورود به انبار قرنطینه",
+        auto_now_add=True,
+        null=True,
+        blank=True,
+    )
+    end_date = jmodels.jDateField(
+        verbose_name="تاریخ خروج به انبار قرنطینه",
+        auto_now_add=False,
+        null=True,
+        blank=True,
+    )
+
+    create_at = jmodels.jDateTimeField(auto_now_add=True)
+    update_at = jmodels.jDateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "انبار قرنطینه محصول"
+        verbose_name_plural = "انبار قرنطینه محصول"
+
+    def __str__(self):
+        return f"{self.tolid_item} | باقیمانده: {self.remaining_inventory} {self.unit}"
+
+
 class AnbarTolidModel(models.Model):
     tolid_item = models.ForeignKey(
         TolidModel, verbose_name="محصول", on_delete=models.CASCADE

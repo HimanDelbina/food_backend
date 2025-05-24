@@ -25,16 +25,15 @@ from datetime import datetime
 import io
 import openpyxl
 from collections import Counter
-import jdatetime 
+import jdatetime
 
 
-# @api_view(["POST"])
-# @permission_classes([AllowAny])
-# def create_person(request):
-#     s_data = request.data
-#     print(request.data)
-#     data_serializers = PersonSerializers(data=s_data)
-#     if data_serializers.is_valid():
-#         data_serializers.save()
-#         return Response(data_serializers.data, status=status.HTTP_201_CREATED)
-#     return Response(data_serializers.errors, status=status.HTTP_400_BAD_REQUEST)
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def create_tolid(request):
+    s_data = request.data
+    data_serializers = TolidSerializers(data=s_data)
+    if data_serializers.is_valid():
+        data_serializers.save()
+        return Response(data_serializers.data, status=status.HTTP_201_CREATED)
+    return Response(data_serializers.errors, status=status.HTTP_400_BAD_REQUEST)

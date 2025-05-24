@@ -3,5 +3,5 @@ from . import views
 from production.views import *
 
 urlpatterns = [
-    # path("create_person", views.create_person, name="create_person"),
+    path("create_tolid", views.create_tolid, name="create_tolid"),
 ]

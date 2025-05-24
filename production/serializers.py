@@ -22,6 +22,17 @@ class AnbarTolidSerializers(serializers.ModelSerializer):
         fields = "__all__"
 
 
+class AnbarGhSerializers(serializers.ModelSerializer):
+    start_date = JDateTimeField(
+        format="%Y/%m/%d %H:%M", required=False, allow_null=True
+    )
+    end_date = JDateTimeField(format="%Y/%m/%d %H:%M", required=False, allow_null=True)
+
+    class Meta:
+        model = AnbarGhModel
+        fields = "__all__"
+
+
 class AnbarExitSerializers(serializers.ModelSerializer):
     exit_date = JDateTimeField(format="%Y/%m/%d %H:%M", required=False, allow_null=True)
 
