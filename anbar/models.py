@@ -29,7 +29,7 @@ KALA_TAG = (
 
 class AnbarModel(models.Model):
     code = models.CharField(verbose_name="کد کالا", max_length=50)
-    name = models.CharField(verbose_name="نام انبار", max_length=50)
+    name = models.CharField(verbose_name="نام کالا", max_length=50)
     barcode = models.ImageField(
         verbose_name="بارکد",
         upload_to="barcodes/",  # مسیر ذخیره بارکدها
