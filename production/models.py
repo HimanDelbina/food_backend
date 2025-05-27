@@ -29,6 +29,7 @@ class TolidModel(models.Model):
         verbose_name="صادراتی یا داخلی", choices=EXPORTORDOMESTIC, max_length=1
     )
     description = models.TextField(verbose_name="توضیحات", null=True, blank=True)
+    items = models.JSONField(verbose_name="موارد بسته بندی", default=list)
     expiration_date = jmodels.jDateField(
         verbose_name="تاریخ انقضا ",
         auto_now=False,

@@ -311,3 +311,57 @@ class ShortageAnalysisAPI(APIView):
             analysis_data.append({"product": product.name, "materials": material_data})
 
         return Response({"amount": amount, "analysis": analysis_data})
+
+
+class ProductMaterialsCost(APIView):
+    def get(self, request):
+        product_id = request.query_params.get("product_id")
+        weight = request.query_params.get("weight")
+
+        if not product_id or not weight:
+            return Response(
+                {"detail": "پارامترهای product_id و weight اجباری هستند."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            weight = float(weight)
+        except ValueError:
+            return Response(
+                {"detail": "مقدار weight باید عددی باشد."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        relations = ProductMaterialRelation.objects.filter(
+            product_id=product_id
+        ).select_related("material")
+
+        total_cost = 0
+        detailed_costs = []
+
+        for rel in relations:
+            total_quantity = rel.quantity_per_unit * weight
+            unit_price = rel.material.unit_price or 0
+            material_cost = total_quantity * unit_price
+            total_cost += material_cost
+
+            detailed_costs.append(
+                {
+                    "material_id": rel.material.id,
+                    "material_name": rel.material.name,
+                    "unit_type": rel.material.unit_type,
+                    "quantity_needed": total_quantity,
+                    "unit_price": unit_price,
+                    "cost": material_cost,
+                }
+            )
+
+        return Response(
+            {
+                "product_id": product_id,
+                "weight": weight,
+                "total_material_cost": total_cost,
+                "details": detailed_costs,
+            },
+            status=status.HTTP_200_OK,
+        )

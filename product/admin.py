@@ -12,6 +12,13 @@ class ProductAdmin(admin.ModelAdmin):
     search_fields = ["name"]
 
 
+class FixedCostAdmin(admin.ModelAdmin):
+    fields = ["name", "monthly_cost"]
+    list_display = ["name", "monthly_cost"]
+    list_filter = ["name"]
+    search_fields = ["name"]
+
+
 class ProductMaterialRelationAdmin(admin.ModelAdmin):
     def product_name(self, obj):
         return obj.product.name
@@ -24,4 +31,5 @@ class ProductMaterialRelationAdmin(admin.ModelAdmin):
 
 
 admin.site.register(ProductModel, ProductAdmin)
+admin.site.register(FixedCostModel, FixedCostAdmin)
 admin.site.register(ProductMaterialRelation, ProductMaterialRelationAdmin)

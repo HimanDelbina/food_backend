@@ -16,8 +16,17 @@ class AnbarAdmin(admin.ModelAdmin):
         "unit_type",
         "sub_unit_type",
         "tag",
+        "unit_price",
     ]
-    list_display = ["name", "code", "Inventory","min_Inventory","max_Inventory","tag"]
+    list_display = [
+        "name",
+        "code",
+        "Inventory",
+        "min_Inventory",
+        "max_Inventory",
+        "tag",
+        "unit_price",
+    ]
     list_filter = ["name"]
     search_fields = ["name", "code"]
 

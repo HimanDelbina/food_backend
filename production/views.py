@@ -26,6 +26,7 @@ import io
 import openpyxl
 from collections import Counter
 import jdatetime
+from django.db.models import Sum
 
 
 @api_view(["POST"])
@@ -37,3 +38,55 @@ def create_tolid(request):
         data_serializers.save()
         return Response(data_serializers.data, status=status.HTTP_201_CREATED)
     return Response(data_serializers.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def get_tolid_by_userID(request, user_id):
+    filter_today = request.GET.get("today", "false").lower() == "true"
+    user_data = TolidModel.objects.filter(user_id=user_id)
+
+    if filter_today:
+        today = jdatetime.date.today()
+        user_data = user_data.filter(production_date=today)
+
+    return Response(
+        TolidGetSerializers(user_data, many=True).data, status=status.HTTP_200_OK
+    )
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def get_full_and_aggregated_tolid_by_user(request, user_id):
+    all_tolid = TolidModel.objects.filter(user_id=user_id).select_related("product")
+
+    # لیست جزئیات
+    detailed_list = [
+        {
+            "product_name": item.product.name,
+            "production": float(item.production),
+            "production_date": (
+                str(item.production_date) if item.production_date else None
+            ),
+        }
+        for item in all_tolid
+    ]
+
+    # مرتب‌سازی نزولی بر اساس production_date (جدیدترین‌ها اول)
+    detailed_list.sort(key=lambda x: x["production_date"] or "", reverse=True)
+
+    # لیست جمع کل
+    aggregated = all_tolid.values("product__name").annotate(
+        total_production=Sum("production")
+    )
+    aggregated_list = [
+        {
+            "product_name": item["product__name"],
+            "production": float(item["total_production"]),
+        }
+        for item in aggregated
+    ]
+
+    return Response(
+        {"data": detailed_list, "total": aggregated_list}, status=status.HTTP_200_OK
+    )

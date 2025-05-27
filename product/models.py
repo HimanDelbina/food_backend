@@ -2,7 +2,18 @@ from django.db import models
 from anbar.models import *
 from anbar.models import AnbarModel
 
+
 # Create your models here.
+class FixedCostModel(models.Model):
+    name = models.CharField(max_length=100, verbose_name="عنوان هزینه")
+    monthly_cost = models.FloatField(verbose_name="هزینه ماهانه")
+
+    class Meta:
+        verbose_name = "هزینه ثابت"
+        verbose_name_plural = "هزینه‌های ثابت"
+
+    def __str__(self):
+        return self.name
 
 
 class ProductModel(models.Model):

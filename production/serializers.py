@@ -16,6 +16,20 @@ class TolidSerializers(serializers.ModelSerializer):
         fields = "__all__"
 
 
+class TolidGetSerializers(serializers.ModelSerializer):
+    expiration_date = JDateTimeField(
+        format="%Y/%m/%d %H:%M", required=False, allow_null=True
+    )
+    production_date = JDateTimeField(
+        format="%Y/%m/%d %H:%M", required=False, allow_null=True
+    )
+
+    class Meta:
+        model = TolidModel
+        fields = "__all__"
+        depth = 1
+
+
 class AnbarTolidSerializers(serializers.ModelSerializer):
     class Meta:
         model = AnbarTolidModel
@@ -39,3 +53,12 @@ class AnbarExitSerializers(serializers.ModelSerializer):
     class Meta:
         model = AnbarExitModel
         fields = "__all__"
+
+
+
+class TolidBriefSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source='product.name')
+
+    class Meta:
+        model = TolidModel
+        fields = ['product_name', 'production_date', 'production']

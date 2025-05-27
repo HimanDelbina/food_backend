@@ -26,6 +26,11 @@ urlpatterns = [
         name="product_materials_calculator",
     ),
     path(
+        "ProductMaterialsCost/",
+        ProductMaterialsCost.as_view(),
+        name="ProductMaterialsCost",
+    ),
+    path(
         "inventory_analysis",
         InventoryAnalysisAPIView.as_view(),
         name="inventory_analysis",

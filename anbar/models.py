@@ -60,6 +60,9 @@ class AnbarModel(models.Model):
         verbose_name="واحد فرعی", max_length=2, choices=SUB_UNIT_TYPE
     )
     tag = models.CharField(verbose_name="تگ", max_length=2, choices=KALA_TAG)
+    unit_price = models.FloatField(
+        default=0.0, verbose_name="قیمت هر واحد ماده اولیه", null=True, blank=True
+    )
 
     class Meta:
         verbose_name = "انبار"
@@ -115,6 +118,7 @@ class AnbarRequestModel(models.Model):
     approved_at = jmodels.jDateTimeField(
         verbose_name="تاریخ تایید/رد", null=True, blank=True
     )
+
     create_at = jmodels.jDateTimeField(auto_now_add=True)
     update_at = jmodels.jDateTimeField(auto_now=True)
 

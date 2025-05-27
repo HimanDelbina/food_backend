@@ -20,6 +20,7 @@ class TolidAdmin(admin.ModelAdmin):
         "description",
         "expiration_date",
         "production_date",
+        "items",
     ]
     list_display = [
         "user_name",
