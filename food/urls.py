@@ -13,6 +13,8 @@ urlpatterns = [
     path("user_scince/", include("user_scince.urls")),
     path("production/", include("production.urls")),
     path("business/", include("business.urls")),
+    path("passwords/", include("password.urls")),
+    path("", include("frontend.urls")),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 

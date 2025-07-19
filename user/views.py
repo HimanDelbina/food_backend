@@ -681,3 +681,7 @@ def get_user_active_status(request, person_code):
         return Response(
             {"error": "خطای داخلی سرور"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+# --------------------------------------------------------------------------#
+

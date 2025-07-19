@@ -47,4 +47,5 @@ urlpatterns = [
         delete_anbar_request,
         name="delete_anbar_request",
     ),
+
 ]

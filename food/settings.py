@@ -51,6 +51,8 @@ INSTALLED_APPS = [
     "all_data",
     "production",
     "business",
+    "frontend",
+    "password",
 ]
 
 MIDDLEWARE = [
