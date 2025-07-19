@@ -46,7 +46,7 @@ class AnbarModel(models.Model):
         verbose_name="ايران كد كالا", max_length=50, null=True, blank=True
     )
     description = models.TextField(verbose_name="توضیحات", null=True, blank=True)
-    Inventory = models.CharField(verbose_name="موجودی", max_length=50, default=0)
+    Inventory = models.FloatField(verbose_name="موجودی", default=0.0)
     min_Inventory = models.CharField(
         verbose_name="حداقل موجودي", max_length=50, default=0
     )
@@ -91,6 +91,10 @@ REQUEST_STATUS_CHOICES = (
     ("C", "تکمیل شده"),  # Completed
     ("U", "لغو شده"),
 )
+REQUEST_CHOICES = (
+    ("A", "درخواست کالا"),
+    ("B", "برگشت کالا"),
+)
 
 
 class AnbarRequestModel(models.Model):
@@ -101,6 +105,12 @@ class AnbarRequestModel(models.Model):
     description = models.TextField(
         verbose_name="توضیحات/دلیل درخواست", null=True, blank=True
     )  # Added description
+    request_choice = models.CharField(
+        max_length=1,
+        choices=REQUEST_CHOICES,
+        default="A",  # Default to Pending
+        verbose_name="نوع درخواست",
+    )
     status = models.CharField(
         max_length=1,
         choices=REQUEST_STATUS_CHOICES,

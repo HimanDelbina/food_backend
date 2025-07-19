@@ -218,7 +218,7 @@ class PersonelModel(models.Model):
         verbose_name="تعداد فرزند دختر", default=0, null=True, blank=True
     )
     child = models.ManyToManyField(
-        ChildModel, verbose_name="فرزند", null=True, blank=True
+        ChildModel, verbose_name="فرزند", blank=True
     )
     insurance_number = models.CharField(
         verbose_name="شماره بیمه", max_length=15, null=True, blank=True

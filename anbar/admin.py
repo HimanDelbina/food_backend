@@ -37,10 +37,11 @@ class AnbarRequestAdmin(admin.ModelAdmin):
         "kala",
         "description",
         "status",
+        "request_choice",
         "approved_by",
         "approved_at",
     ]
-    list_display = ["kala", "status"]
+    list_display = ["kala", "status", "request_choice"]
     list_filter = ["status"]
 
 

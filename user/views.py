@@ -663,7 +663,10 @@ def get_user_active_status(request, person_code):
         # Attempt to find the user by person_code
         user = PersonelModel.objects.get(person_code=person_code)
         # Return the is_active status
-        return Response({"is_active": user.is_active}, status=status.HTTP_200_OK)
+        return Response(
+            {"is_active": user.is_active, "access": user.access},
+            status=status.HTTP_200_OK,
+        )
     except PersonelModel.DoesNotExist:
         # Handle case where user is not found
         return Response(

@@ -27,6 +27,7 @@ from rest_framework.views import APIView
 from django.utils import timezone
 from django.db.models import Count
 
+
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def create_anbar(request):
@@ -69,10 +70,12 @@ def get_all_request(request):
     return Response(
         AnbarRequestGetSerializers(user_data, many=True).data, status=status.HTTP_200_OK
     )
+
+
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def get_complete_request(request):
-    user_data = AnbarRequestModel.objects.filter(status = "C")
+    user_data = AnbarRequestModel.objects.filter(status="C")
     return Response(
         AnbarRequestGetSerializers(user_data, many=True).data, status=status.HTTP_200_OK
     )
@@ -86,11 +89,9 @@ def approve_request_api(request):
         return Response(
             {"error": "request_id الزامی است."}, status=status.HTTP_400_BAD_REQUEST
         )
-
     try:
         with transaction.atomic():
             anbar_request = AnbarRequestModel.objects.get(id=request_id)
-
             if anbar_request.status not in ["P", "A"]:
                 return Response(
                     {
@@ -98,21 +99,17 @@ def approve_request_api(request):
                     },
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-
             kala_list = anbar_request.kala
-
             for item in kala_list:
                 code = item.get("code")
                 weight_str = item.get("weight")
 
                 if not code or weight_str is None:
                     continue
-
                 try:
                     weight = float(weight_str)
                 except (ValueError, TypeError):
                     continue
-
                 try:
                     anbar_item = AnbarModel.objects.select_for_update().get(code=code)
                 except AnbarModel.DoesNotExist:
@@ -120,24 +117,18 @@ def approve_request_api(request):
                         {"error": f"کالایی با کد {code} در انبار یافت نشد."},
                         status=status.HTTP_404_NOT_FOUND,
                     )
-
                 try:
                     inventory = float(anbar_item.Inventory)
                 except (ValueError, TypeError):
                     inventory = 0.0
-
                 new_inventory = inventory - weight
-
                 if new_inventory < 0:
                     return Response(
                         {"error": f"موجودی کالای {code} کافی نیست."},
                         status=status.HTTP_400_BAD_REQUEST,
                     )
-
                 anbar_item.Inventory = str(new_inventory)
                 anbar_item.save()
-
-            # تنها در صورتی approved_by را ست کنیم که کاربر لاگین کرده باشد
             if (
                 hasattr(request.user, "is_authenticated")
                 and request.user.is_authenticated
@@ -145,22 +136,24 @@ def approve_request_api(request):
                 anbar_request.approved_by = request.user.personelmodel
             else:
                 anbar_request.approved_by = None  # یا هر مقدار پیش‌فرض دیگر
-
             anbar_request.status = "C"
             anbar_request.approved_at = jdatetime.datetime.now()
             anbar_request.save()
-
             return Response(
                 {"message": "درخواست با موفقیت تکمیل شد و موجودی به‌روز شد."},
                 status=status.HTTP_200_OK,
             )
-
     except AnbarRequestModel.DoesNotExist:
         return Response(
             {"error": "درخواست با این ID یافت نشد."}, status=status.HTTP_404_NOT_FOUND
         )
     except Exception as e:
-        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        import traceback
+
+        traceback.print_exc()
+        return Response(
+            {"error": str(e), "details": traceback.format_exc()}, status=500
+        )
 
 
 @api_view(["POST"])
@@ -427,9 +420,11 @@ class AnbarAnalyticsAPIView(APIView):
                 )
 
         # تعداد درخواست‌ها بر اساس وضعیت
-        request_status_qs = AnbarRequestModel.objects.values("status").annotate(
-            count=Count("status")
-        ).filter(status__in=['P', 'A', 'C', 'R', 'U']) 
+        request_status_qs = (
+            AnbarRequestModel.objects.values("status")
+            .annotate(count=Count("status"))
+            .filter(status__in=["P", "A", "C", "R", "U"])
+        )
         request_status = {item["status"]: item["count"] for item in request_status_qs}
 
         # کاربران پرتکرار

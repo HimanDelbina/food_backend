@@ -12,6 +12,7 @@ urlpatterns = [
     path("all_data/", include("all_data.urls")),
     path("user_scince/", include("user_scince.urls")),
     path("production/", include("production.urls")),
+    path("business/", include("business.urls")),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 

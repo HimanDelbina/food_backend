@@ -12,27 +12,32 @@ from user.models import *
 def get_all_requests_by_type(request):
     types_param = request.query_params.get("type")  # مثلا anbar,leave
 
+    allowed_types = {"anbar", "leave", "overtime"}
+
     if types_param:
         types = [t.strip().lower() for t in types_param.split(",")]
+        types = [t for t in types if t in allowed_types]
     else:
-        types = ["anbar"]  # پیش‌فرض اگر چیزی ارسال نشد
-    allowed_types = {"anbar", "leave", "overtime"}
-    types = [t for t in types if t in allowed_types]
+        types = list(allowed_types)  # اگر چیزی ارسال نشد، همه‌ی نوع‌ها بررسی شوند
 
     result = {}
 
     if "anbar" in types:
         anbar_queryset = AnbarRequestModel.objects.filter(status="P")
         if anbar_queryset.exists():
-            anbar_data = AnbarRequestGetSerializers(anbar_queryset, many=True).data
-            result["anbar_requests"] = anbar_data
+            result["anbar_requests"] = AnbarRequestGetSerializers(
+                anbar_queryset, many=True
+            ).data
 
-    # ignore "leave" and "overtime" for now
-    unknown_types = [t for t in types if t not in ["anbar"]]
-    if unknown_types:
-        return Response(
-            {"error": f"نوع درخواست‌های نامعتبر: {', '.join(unknown_types)}"}, status=400
-        )
+    if "leave" in types:
+        # leave_queryset = LeaveRequestModel.objects.filter(...)
+        # result["leave_requests"] = LeaveSerializer(leave_queryset, many=True).data
+        pass
+
+    if "overtime" in types:
+        # overtime_queryset = OvertimeRequestModel.objects.filter(...)
+        # result["overtime_requests"] = OvertimeSerializer(overtime_queryset, many=True).data
+        pass
 
     if not result:
         return Response(

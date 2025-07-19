@@ -2,8 +2,10 @@ from rest_framework import serializers
 from .models import *
 from user.serializers import *
 
+
 class ApproveRequestSerializer(serializers.Serializer):
     request_id = serializers.IntegerField()
+
 
 class AnbarSerializers(serializers.ModelSerializer):
     class Meta:
@@ -30,7 +32,7 @@ class AnbarRequestSerializers(serializers.ModelSerializer):
 
     class Meta:
         model = AnbarRequestModel
-        fields = ["user", "kala", "description"]
+        fields = ["user", "kala", "description", "request_choice"]
 
     def create(self, validated_data):
         user = validated_data["user"]
@@ -63,6 +65,7 @@ class AnbarRequestSerializers(serializers.ModelSerializer):
             user=user,
             kala=final_kala_list,
             description=validated_data.get("description", ""),
+            request_choice=validated_data.get("request_choice", "A"),
         )
 
 
@@ -80,8 +83,7 @@ class AnbarRequestGetSerializers(serializers.ModelSerializer):
 
     class Meta:
         model = AnbarRequestModel
-        fields = "__all__"  # یا دقیق‌تر اگه خواستی
-        # fields = ['id', 'user', 'description', 'status', 'kala_details', 'create_at', 'user_first_name', 'user_last_name']
+        fields = "__all__" 
 
     def get_kala_details(self, obj):
         return obj.get_kala_details()

@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "django_jalali",
     "corsheaders",
+    'django_filters',
     ##############################
     "user",
     "anbar",
@@ -49,6 +50,7 @@ INSTALLED_APPS = [
     "user_scince",
     "all_data",
     "production",
+    "business",
 ]
 
 MIDDLEWARE = [
@@ -208,3 +210,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://192.168.43.15:5000",
     "http://192.168.60.184:5000",
 ]
+
+
+REST_FRAMEWORK = {
+    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
+}
